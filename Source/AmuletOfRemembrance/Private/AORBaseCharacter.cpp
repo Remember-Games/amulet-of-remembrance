@@ -22,13 +22,21 @@ void AAORBaseCharacter::BeginPlay()
 void AAORBaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	//UE_LOG(LogTemp, Warning, TEXT("Player Character TICK: %u"), FDateTime::UtcNow().GetTicks());
+}
+
+void AAORBaseCharacter::Interact()
+{
 
 }
 
-// Called to bind functionality to input
-void AAORBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AAORBaseCharacter::BeginShadowRecord()
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+}
+
+void AAORBaseCharacter::StopShadowRecord()
+{
 
 }
 

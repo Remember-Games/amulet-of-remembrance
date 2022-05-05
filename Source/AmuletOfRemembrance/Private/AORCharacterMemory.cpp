@@ -2,11 +2,3 @@
 
 
 #include "AORCharacterMemory.h"
-
-AORCharacterMemory::AORCharacterMemory()
-{
-}
-
-AORCharacterMemory::~AORCharacterMemory()
-{
-}

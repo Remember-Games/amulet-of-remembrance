@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "AORBaseCharacter.h"
+#include "AORCharacterMemory.h"
 #include "AORPlayerController.generated.h"
 
 /**
@@ -13,5 +15,55 @@ UCLASS()
 class AMULETOFREMEMBRANCE_API AAORPlayerController : public APlayerController
 {
 	GENERATED_BODY()
+
+public:
 	
+	UPROPERTY(EditDefaultsOnly, Category = ShadowRecording)
+	TSubclassOf<AAORBaseCharacter> ShadowCharacter;
+	
+	UPROPERTY(EditAnywhere, Category = ShadowRecording)
+	float MaxRecordingDuration;
+	
+	UPROPERTY(EditAnywhere, Category = ShadowRecording)
+	int MaxActiveShadows;
+	
+	UPROPERTY(EditDefaultsOnly, Category = Input)
+	float TurnRateGamepad;
+	
+	AAORPlayerController();
+		
+	/*METHODS*/
+public:
+	virtual void SetupInputComponent() override;
+	virtual void OnPossess(APawn* inPawn) override;
+	virtual void Tick(float deltaTime) override;
+
+private:
+	void RecordAxisInputs(float deltaTime);
+	void BeginShadowRecord();
+	void StopShadowRecord();
+
+	void DebugPrintMemory();
+	void DebugPrintCorrection(FVector pos, FRotator rot, FDateTime t);
+
+	void ForwardAxis(float value);
+	void SidewaysAxis(float value);
+	void PitchAxisDelta(float value);
+	void YawAxisDelta(float value);
+	void PitchAxisRate(float value);
+	void YawAxisRate(float value);
+	void JumpActionOn();
+	void JumpActionOff();
+	void InteractAction();
+	void ShadowAction();
+
+	/*MEMBERS*/
+private:
+	AAORBaseCharacter* character;
+	AORCharacterMemory memory;
+	FDateTime beginRecTime;
+	bool isRecording;
+
+	FVector beginRecPos;
+	FRotator beginRecRot;
 };
