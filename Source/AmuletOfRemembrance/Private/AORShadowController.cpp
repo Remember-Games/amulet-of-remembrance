@@ -2,15 +2,14 @@
 
 
 #include "AORShadowController.h"
+#include "Math/UnrealMathUtility.h"
 
 AAORShadowController::AAORShadowController() 
 {
 	beginMemTime = FDateTime::UtcNow();
-	movementsInd = 0;
-	rotationsInd = 0;
-	actionsInd = 0;
-	correctionsInd = 0;
-	isCorrected = true;
+	mInd = 0;
+	aInd = 0;
+	isPositionMatched = true;
 }
 
 void AAORShadowController::OnPossess(APawn* inPawn)
@@ -25,12 +24,10 @@ void AAORShadowController::Tick(float deltaTime)
 	Super::Tick(deltaTime);
 	FTimespan tspan = FDateTime::UtcNow() - beginMemTime;
 	if (tspan > memory.timespan) {
-		Destroy();
-		return;
+		character->Destroy();
+		return; 
 	}
-	//DoCorrections(tspan);
 	DoMovements(tspan);
-	DoRotations(tspan);
 	DoActions(tspan);
 }
 
@@ -42,31 +39,57 @@ void AAORShadowController::SetNewMemory(AORCharacterMemory& _memory)
 
 void AAORShadowController::DoMovements(FTimespan ts)
 {
-	AORMovementEvent e;
-	while (movementsInd < memory.movements.Num() && (e = memory.movements[movementsInd]).timespan < ts) {
-		const FRotator yawRotation(0, GetControlRotation().Yaw, 0);
-		const FVector forwardDirection = FRotationMatrix(yawRotation).GetUnitAxis(EAxis::X);
-		const FVector sidewaysDirection = FRotationMatrix(yawRotation).GetUnitAxis(EAxis::Y);
-		character->AddMovementInput(forwardDirection, e.forward);
-		character->AddMovementInput(sidewaysDirection, e.sideways);
-		movementsInd++;
+	if (mInd >= memory.movements.Num() || ts < memory.movements[mInd].timespan)return;
+	while (mInd + 1 < memory.movements.Num() &&
+		memory.movements[mInd + 1].timespan < ts)++mInd;
+	AORMovementRecord tr_from = memory.movements[mInd];
+	FVector targetPos;
+	FRotator targetRot;
+	float forward;
+	float sideways;
+	if (mInd + 1 < memory.movements.Num()) {
+		AORMovementRecord tr_to = memory.movements[mInd + 1];
+		double l = (tr_to.timespan - tr_from.timespan).GetTotalSeconds();
+		double delta = (ts - tr_from.timespan).GetTotalSeconds();
+		double k = l != 0 ? delta / l : delta;
+		targetPos = FMath::Lerp(tr_from.position, tr_to.position, k);
+		targetRot = FMath::Lerp(tr_from.rotation, tr_to.rotation, k);
+		forward = FMath::Lerp(tr_from.forward, tr_to.forward, k);
+		sideways = FMath::Lerp(tr_from.sideways, tr_to.sideways, k);
 	}
-}
-
-void AAORShadowController::DoRotations(FTimespan ts)
-{
-	AORRotationEvent e;
-	while (rotationsInd < memory.rotations.Num() && (e = memory.rotations[rotationsInd]).timespan < ts) {
-		character->AddControllerPitchInput(e.pitch);
-		character->AddControllerYawInput(e.yaw);
-		rotationsInd++;
+	else {
+		targetPos = tr_from.position;
+		targetRot = tr_from.rotation;
+		forward = tr_from.forward;
+		sideways = tr_from.sideways;
+		mInd++;
 	}
+	SetControlRotation(targetRot);
+	if (isPositionMatched) {
+		FVector vec = targetPos - character->GetActorLocation();
+		if (vec.Length() < MAX_CORRECTION_POS_MAG) {
+			character->SetActorLocation(targetPos, true);
+			UE_LOG(LogTemp, Warning, TEXT("POSITION MATCHED!"));
+		}
+		else {
+			isPositionMatched = false;
+			UE_LOG(LogTemp, Warning, TEXT("POSITION DEATACHED!"));
+		}
+	}
+	else {
+		UE_LOG(LogTemp, Warning, TEXT("POSITION DEATACHED!"));
+	}
+	const FRotator yawRotation(0, GetControlRotation().Yaw, 0);
+	const FVector forwardDirection = FRotationMatrix(yawRotation).GetUnitAxis(EAxis::X);
+	const FVector sidewaysDirection = FRotationMatrix(yawRotation).GetUnitAxis(EAxis::Y);
+	character->AddMovementInput(forwardDirection, forward);
+	character->AddMovementInput(sidewaysDirection, sideways);
 }
 
 void AAORShadowController::DoActions(FTimespan ts)
 {
 	AORActionEvent e;
-	while (actionsInd < memory.actions.Num() && (e = memory.actions[actionsInd]).timespan < ts) {
+	while (aInd < memory.actions.Num() && (e = memory.actions[aInd]).timespan < ts) {
 		switch (e.action) {
 		case AORCharacterAction::JUMP_ON:
 			character->Jump();
@@ -78,28 +101,7 @@ void AAORShadowController::DoActions(FTimespan ts)
 			character->Interact();
 			break;
 		}
-		actionsInd++;
+		aInd++;
 	}
 }
 
-void AAORShadowController::DoCorrections(FTimespan ts)
-{
-	if (!isCorrected)return;
-	AORCorrectionEvent e;
-	while (correctionsInd < memory.corrections.Num() && (e = memory.corrections[correctionsInd]).timespan < ts) {
-		FVector currentPos = character->GetActorLocation();
-		FRotator currentRot = character->GetActorRotation();
-		FVector targetPos = e.position;
-		FRotator targetRot = e.rotation;
-
-		FVector deltaPos = targetPos - currentPos;
-		if (deltaPos.Length() < MAX_CORRECTION_POS_MAG) {
-			character->SetActorLocation(targetPos, true);
-		}
-		else {
-			isCorrected = false;
-		}
-		character->SetActorRotation(targetRot);
-		correctionsInd++;
-	}
-}

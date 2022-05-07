@@ -44,45 +44,21 @@ void AAORPlayerController::OnPossess(APawn* inPawn)
 void AAORPlayerController::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
-	FDateTime now = FDateTime::UtcNow();
+	//FDateTime now = FDateTime::UtcNow();
 	//UE_LOG(LogTemp, Warning, TEXT("Player Controller TICK: %u"), now.GetTicks());
 	//DebugPrintCorrection(character->GetActorLocation(), character->GetActorRotation(), now);
 	if (isRecording) {
-		RecordAxisInputs(deltaTime);
+		FDateTime now = FDateTime::UtcNow();
+		FTimespan timespan = now - beginRecTime;
+		if (timespan.GetTotalSeconds() > MaxRecordingDuration) {
+			StopShadowRecord();
+			return;
+		}
+		float forwardAxis = InputComponent->GetAxisValue("Move Forward / Backward");
+		float sidewaysAxis = InputComponent->GetAxisValue("Move Right / Left");
+		memory.movements.Add(AORMovementRecord(forwardAxis, sidewaysAxis, 
+			character->GetActorLocation(), GetControlRotation(),  timespan));
 	}
-}
-
-void AAORPlayerController::RecordAxisInputs(float deltaTime)
-{
-	FDateTime now = FDateTime::UtcNow();
-	FTimespan timespan = now - beginRecTime;
-	if (timespan.GetTotalSeconds() > MaxRecordingDuration) {
-		StopShadowRecord();
-		return;
-	}
-	float forwardAxis = InputComponent->GetAxisValue("Move Forward / Backward");
-	float sidewaysAxis = InputComponent->GetAxisValue("Move Right / Left");
-	float pitchDelta = InputComponent->GetAxisValue("Look Up / Down Mouse");
-	float yawDelta = InputComponent->GetAxisValue("Turn Right / Left Mouse");
-	float pitchRate = InputComponent->GetAxisValue("Look Up / Down Gamepad");
-	float yawRate = InputComponent->GetAxisValue("Turn Right / Left Gamepad");
-	if (forwardAxis != 0.0f || sidewaysAxis != 0.0f) {
-		memory.movements.Add(AORMovementEvent(forwardAxis, sidewaysAxis, timespan));
-	}
-	if (pitchDelta != 0.0f || yawDelta != 0.0f) {
-		memory.rotations.Add(AORRotationEvent(pitchDelta, yawDelta, timespan));
-	}
-	if (pitchRate != 0.0f || yawRate != 0.0f) {
-		memory.rotations.Add(AORRotationEvent(pitchRate * deltaTime, yawRate * deltaTime, timespan));
-	}
-	memory.corrections.Add(AORCorrectionEvent(character->GetActorLocation(), character->GetActorRotation(), timespan));
-	/*
-	UE_LOG(LogTemp, Warning, TEXT("Frame: %u"), now.GetTicks());
-	UE_LOG(LogTemp, Warning, TEXT("***Forward: %f"), forwardAxis);
-	UE_LOG(LogTemp, Warning, TEXT("***Sideways: %f"), sidewaysAxis);
-	UE_LOG(LogTemp, Warning, TEXT("***Pitch: %f"), pitchDelta);
-	UE_LOG(LogTemp, Warning, TEXT("***Yaw: %f\n"), yawDelta);
-	*/
 }
 
 void AAORPlayerController::BeginShadowRecord()
@@ -92,6 +68,7 @@ void AAORPlayerController::BeginShadowRecord()
 	beginRecTime = FDateTime::UtcNow();
 	beginRecPos = character->GetActorLocation();
 	beginRecRot = character->GetActorRotation();
+	memory.movements.Add(AORMovementRecord(0, 0, beginRecPos, beginRecRot, FTimespan(0)));
 }
 
 void AAORPlayerController::StopShadowRecord()
@@ -100,7 +77,7 @@ void AAORPlayerController::StopShadowRecord()
 	isRecording = false;
 	FDateTime endRecTime = FDateTime::UtcNow();
 	memory.timespan = endRecTime - beginRecTime;
-	DebugPrintMemory();
+	UE_LOG(LogTemp, Warning, TEXT("%s"), *memory.ToString());
 	checkf(ShadowCharacter, TEXT("Shadow Character type class is not set properly!"));
 	APawn* shadow_pawn = GetWorld()->SpawnActor<APawn>(ShadowCharacter, beginRecPos, beginRecRot);
 	if (shadow_pawn) {
@@ -112,6 +89,7 @@ void AAORPlayerController::StopShadowRecord()
 	else {
 		UE_LOG(LogTemp, Warning, TEXT("Shadow actor could not be spawned"));
 	}
+	memory.Clear();
 }
 
 void AAORPlayerController::ForwardAxis(float value)
@@ -196,15 +174,3 @@ void AAORPlayerController::ShadowAction()
 	if (!isRecording)BeginShadowRecord();
 	else StopShadowRecord();
 }
-
-
-void AAORPlayerController::DebugPrintMemory()
-{
-
-}
-
-void AAORPlayerController::DebugPrintCorrection(FVector pos, FRotator rot, FDateTime t)
-{
-	UE_LOG(LogTemp, Warning, TEXT("Correction Event ::: Pos : [ %s ] | Rot : [ %s ] | time : [ %u ]"), *pos.ToString(), *rot.ToString(), t.GetTicks());
-}
-

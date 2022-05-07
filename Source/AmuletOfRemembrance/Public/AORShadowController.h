@@ -26,20 +26,17 @@ public:
 
 private:
 	void DoMovements(FTimespan ts);
-	void DoRotations(FTimespan ts);
 	void DoActions(FTimespan ts);
-	void DoCorrections(FTimespan ts);
 
 private:
 	AAORBaseCharacter* character;
 	AORCharacterMemory memory;
-	int movementsInd;
-	int rotationsInd;
-	int actionsInd;
-	int correctionsInd;
+	int mInd;
+	int aInd;
 	FDateTime beginMemTime;
 	
-	const double MAX_CORRECTION_POS_MAG = 0.1;
-	bool isCorrected;
+	const double MAX_CORRECTION_POS_MAG = 100;
+	bool isPositionMatched;
+
 
 };

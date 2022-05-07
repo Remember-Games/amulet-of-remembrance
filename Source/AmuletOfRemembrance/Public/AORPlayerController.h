@@ -39,12 +39,8 @@ public:
 	virtual void Tick(float deltaTime) override;
 
 private:
-	void RecordAxisInputs(float deltaTime);
 	void BeginShadowRecord();
 	void StopShadowRecord();
-
-	void DebugPrintMemory();
-	void DebugPrintCorrection(FVector pos, FRotator rot, FDateTime t);
 
 	void ForwardAxis(float value);
 	void SidewaysAxis(float value);

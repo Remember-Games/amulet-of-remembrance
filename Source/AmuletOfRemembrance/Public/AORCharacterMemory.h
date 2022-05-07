@@ -9,58 +9,47 @@ enum class AORCharacterAction {
 	JUMP_ON, JUMP_OFF, INTERACT, NONE
 };
 
-struct AORMovementEvent 
+struct AORMovementRecord 
 {
 	float forward;
 	float sideways;
+	FVector position;
+	FRotator rotation;
 	FTimespan timespan;
-	AORMovementEvent() {}
-	AORMovementEvent(float forward, float sideways, FTimespan timespan)
-		: forward(forward), sideways(sideways), timespan(timespan){}
+	AORMovementRecord() {}
+	AORMovementRecord(float forward, float sideways, FVector position, FRotator rotation, FTimespan timespan)
+		: forward(forward), sideways(sideways), position(position), rotation(rotation), timespan(timespan){}
 };
 
-struct AORRotationEvent 
-{
-	float pitch;
-	float yaw;
-	FTimespan timespan;
-	AORRotationEvent() {}
-	AORRotationEvent(float pitch, float yaw, FTimespan timespan)
-		: pitch(pitch), yaw(yaw), timespan(timespan){}
-};
-
-struct AORActionEvent 
+struct AORActionEvent
 {
 	AORCharacterAction action;
 	FTimespan timespan;
 	AORActionEvent() {}
 	AORActionEvent(AORCharacterAction action, FTimespan timespan)
-		: action(action), timespan(timespan){}
-};
-
-struct AORCorrectionEvent
-{
-	FVector position;
-	FRotator rotation;
-	FTimespan timespan;
-	AORCorrectionEvent() {}
-	AORCorrectionEvent(FVector position, FRotator rotation, FTimespan timespan)
-		: position(position), rotation(rotation), timespan(timespan){}
+		: action(action), timespan(timespan) {}
 };
 
 struct AORCharacterMemory
 {
-	TArray<AORMovementEvent> movements;
-	TArray<AORRotationEvent> rotations;
+	TArray<AORMovementRecord> movements;
 	TArray<AORActionEvent> actions;
-	TArray<AORCorrectionEvent> corrections;
 	FTimespan timespan;
 
 	void Clear() {
 		movements.Empty();
-		rotations.Empty();
 		actions.Empty();
-		corrections.Empty();
 		timespan = FTimespan(0);
+	}
+
+	FString ToString() {
+		//transforms
+		FString oStr = FString(TEXT("\n***MEMORY***\n\n::MOVEMENTS::\n"));
+		for (auto& t : movements) {
+			oStr += FString::Printf(TEXT(" -- TIME: %u ==> AXIS: [ %d, %d ] , POS: { %s } , ROT: { %s }\n"),
+				t.timespan.GetTicks(), t.forward, t.sideways, *t.position.ToString(), *t.rotation.ToString());
+		}
+		oStr.Append(TEXT("\n"));
+		return oStr;
 	}
 };
