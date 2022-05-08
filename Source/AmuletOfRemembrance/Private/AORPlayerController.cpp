@@ -77,7 +77,7 @@ void AAORPlayerController::StopShadowRecord()
 	isRecording = false;
 	FDateTime endRecTime = FDateTime::UtcNow();
 	memory.timespan = endRecTime - beginRecTime;
-	UE_LOG(LogTemp, Warning, TEXT("%s"), *memory.ToString());
+	//UE_LOG(LogTemp, Warning, TEXT("%s"), *memory.ToString());
 	checkf(ShadowCharacter, TEXT("Shadow Character type class is not set properly!"));
 	APawn* shadow_pawn = GetWorld()->SpawnActor<APawn>(ShadowCharacter, beginRecPos, beginRecRot);
 	if (shadow_pawn) {

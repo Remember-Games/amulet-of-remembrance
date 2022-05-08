@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "AIController.h"
 #include "AORBaseCharacter.h"
 #include "AORCharacterMemory.h"
@@ -17,6 +18,16 @@ class AMULETOFREMEMBRANCE_API AAORShadowController : public AAIController
 	GENERATED_BODY()
 
 public:
+	
+	UPROPERTY(EditDefaultsOnly, Category = FollowForce)
+	double Spring;
+	
+	UPROPERTY(EditDefaultsOnly, Category = FollowForce)
+	double Damper;
+	
+	UPROPERTY(EditDefaultsOnly, Category = FollowForce)
+	double MaxDistance;
+	
 	AAORShadowController();
 
 public:
@@ -25,7 +36,8 @@ public:
 	void SetNewMemory(AORCharacterMemory& memory);
 
 private:
-	void DoMovements(FTimespan ts);
+	void DoMovements(FTimespan ts, float deltaTime);
+	void ApplyCorrectionForce(FVector targetPos, FVector targetVel, float deltaTime);
 	void DoActions(FTimespan ts);
 
 private:
@@ -35,8 +47,7 @@ private:
 	int aInd;
 	FDateTime beginMemTime;
 	
-	const double MAX_CORRECTION_POS_MAG = 100;
-	bool isPositionMatched;
-
-
+	bool isCorrectionForce;
+	FVector lastTargetPos;
+	UCharacterMovementComponent* characterMovement;
 };

@@ -2,6 +2,7 @@
 
 
 #include "AORShadowController.h"
+#include "DrawDebugHelpers.h"
 #include "Math/UnrealMathUtility.h"
 
 AAORShadowController::AAORShadowController() 
@@ -9,7 +10,12 @@ AAORShadowController::AAORShadowController()
 	beginMemTime = FDateTime::UtcNow();
 	mInd = 0;
 	aInd = 0;
-	isPositionMatched = true;
+	isCorrectionForce = true;
+	lastTargetPos = FVector(0, 0, 0);
+
+	Spring = 10;
+	Damper = 5;
+	MaxDistance = 100;
 }
 
 void AAORShadowController::OnPossess(APawn* inPawn)
@@ -17,6 +23,8 @@ void AAORShadowController::OnPossess(APawn* inPawn)
 	Super::OnPossess(inPawn);
 	character = Cast<AAORBaseCharacter>(inPawn);
 	checkf(character, TEXT("Shadow pawn needs to be a subclass of AORBaseCharacter!"));
+	characterMovement = character->GetCharacterMovement();
+	lastTargetPos = character->GetActorLocation();
 }
 
 void AAORShadowController::Tick(float deltaTime)
@@ -27,7 +35,7 @@ void AAORShadowController::Tick(float deltaTime)
 		character->Destroy();
 		return; 
 	}
-	DoMovements(tspan);
+	DoMovements(tspan, deltaTime);
 	DoActions(tspan);
 }
 
@@ -37,7 +45,7 @@ void AAORShadowController::SetNewMemory(AORCharacterMemory& _memory)
 	beginMemTime = FDateTime::UtcNow();
 }
 
-void AAORShadowController::DoMovements(FTimespan ts)
+void AAORShadowController::DoMovements(FTimespan ts, float deltaTime)
 {
 	if (mInd >= memory.movements.Num() || ts < memory.movements[mInd].timespan)return;
 	while (mInd + 1 < memory.movements.Num() &&
@@ -64,21 +72,11 @@ void AAORShadowController::DoMovements(FTimespan ts)
 		sideways = tr_from.sideways;
 		mInd++;
 	}
+	FVector targetVel = (targetPos - lastTargetPos) / deltaTime;
+	lastTargetPos = targetPos;
 	SetControlRotation(targetRot);
-	if (isPositionMatched) {
-		FVector vec = targetPos - character->GetActorLocation();
-		if (vec.Length() < MAX_CORRECTION_POS_MAG) {
-			character->SetActorLocation(targetPos, true);
-			UE_LOG(LogTemp, Warning, TEXT("POSITION MATCHED!"));
-		}
-		else {
-			isPositionMatched = false;
-			UE_LOG(LogTemp, Warning, TEXT("POSITION DEATACHED!"));
-		}
-	}
-	else {
-		UE_LOG(LogTemp, Warning, TEXT("POSITION DEATACHED!"));
-	}
+	ApplyCorrectionForce(targetPos, targetVel, deltaTime);
+	
 	const FRotator yawRotation(0, GetControlRotation().Yaw, 0);
 	const FVector forwardDirection = FRotationMatrix(yawRotation).GetUnitAxis(EAxis::X);
 	const FVector sidewaysDirection = FRotationMatrix(yawRotation).GetUnitAxis(EAxis::Y);
@@ -102,6 +100,29 @@ void AAORShadowController::DoActions(FTimespan ts)
 			break;
 		}
 		aInd++;
+	}
+}
+
+void AAORShadowController::ApplyCorrectionForce(FVector targetPos, FVector targetVel, float deltaTime)
+{
+	DrawDebugSphere(GetWorld(), targetPos, 10, 8, FColor::Green, true, 0, 1, 1);
+	DrawDebugLine(GetWorld(), character->GetActorLocation(), targetPos, FColor::Red, true, 0, 1, 1);
+	
+	if (isCorrectionForce) {
+		FVector deltaPos = targetPos - character->GetActorLocation();
+		FVector deltaVel = targetVel - characterMovement->Velocity;
+		UE_LOG(LogTemp, Warning, TEXT("DeltaPos: %s"), *deltaPos.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("DeltaVel: %s | TargetVel: %s | ChVel: %s"), *deltaVel.ToString(), *targetVel.ToString(), *characterMovement->Velocity.ToString());
+		if (deltaPos.Length() < MaxDistance) {
+			FVector springForce = Spring * deltaPos; 
+			FVector damperForce = Damper * deltaVel;
+			FVector correctionForce = (springForce + damperForce)*characterMovement->Mass;
+			characterMovement->AddForce(correctionForce);
+			UE_LOG(LogTemp, Warning, TEXT("Spring Force: %s | Damping Force: %s"), *springForce.ToString(), *damperForce.ToString());
+		}
+		else {
+			isCorrectionForce = false;
+		}
 	}
 }
 
