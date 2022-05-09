@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/Actor.h"
+#include "AORInteractive.h"
 #include "AORBaseCharacter.generated.h"
 
 UCLASS()
@@ -12,6 +14,13 @@ class AMULETOFREMEMBRANCE_API AAORBaseCharacter : public ACharacter
 	GENERATED_BODY()
 
 public:
+	
+	UPROPERTY(EditDefaultsOnly, Category = Interaction)
+	float InteractOriginHeight = 170;
+
+	UPROPERTY(EditDefaultsOnly, Category = Interaction)
+	float InteractReach = 100;
+
 	// Sets default values for this character's properties
 	AAORBaseCharacter();
 
@@ -26,4 +35,10 @@ public:
 	virtual void Interact();
 	virtual void BeginShadowRecord();
 	virtual void StopShadowRecord();
+
+private:
+	void UpdateInteractionFocus();
+
+private:
+	IAORInteractive* interactFocus;
 };
