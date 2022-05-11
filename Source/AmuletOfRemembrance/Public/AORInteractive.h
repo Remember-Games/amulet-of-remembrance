@@ -7,7 +7,7 @@
 #include "AORInteractive.generated.h"
 
 // This class does not need to be modified.
-UINTERFACE(MinimalAPI)
+UINTERFACE(BlueprintType)
 class UAORInteractive : public UInterface
 {
 	GENERATED_BODY()
@@ -22,8 +22,16 @@ class AMULETOFREMEMBRANCE_API IAORInteractive
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	virtual void HighlightOn();
-	virtual void HighlightOff();
-	virtual bool CanInteract();
-	virtual void Interact();
+	
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "MyCategory")
+	void HighlightOn();
+	
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "MyCategory")
+	void HighlightOff();
+	
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "MyCategory")
+	bool CanInteract();
+	
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "MyCategory")
+	void Interact();
 };
