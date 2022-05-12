@@ -21,6 +21,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Interaction)
 	float InteractReach = 100;
 
+	UPROPERTY(EditDefaultsOnly, Category = Camera)
+	class UCameraComponent* FollowCamera;
+
 	// Sets default values for this character's properties
 	AAORBaseCharacter();
 

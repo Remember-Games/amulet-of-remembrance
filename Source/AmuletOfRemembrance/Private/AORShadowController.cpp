@@ -14,7 +14,7 @@ AAORShadowController::AAORShadowController()
 	lastTargetPos = FVector(0, 0, 0);
 
 	Spring = 10;
-	Damper = 5;
+	Damper = 0.2;
 	MaxDistance = 100;
 }
 
@@ -115,7 +115,7 @@ void AAORShadowController::ApplyCorrectionForce(FVector targetPos, FVector targe
 		UE_LOG(LogTemp, Warning, TEXT("DeltaVel: %s | TargetVel: %s | ChVel: %s"), *deltaVel.ToString(), *targetVel.ToString(), *characterMovement->Velocity.ToString());
 		if (deltaPos.Length() < MaxDistance) {
 			FVector springForce = Spring * deltaPos; 
-			FVector damperForce = Damper * deltaVel;
+			FVector damperForce = Damper * Spring * deltaVel;
 			FVector correctionForce = (springForce + damperForce)*characterMovement->Mass;
 			characterMovement->AddForce(correctionForce);
 			UE_LOG(LogTemp, Warning, TEXT("Spring Force: %s | Damping Force: %s"), *springForce.ToString(), *damperForce.ToString());
