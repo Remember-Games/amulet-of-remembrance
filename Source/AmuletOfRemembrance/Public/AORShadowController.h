@@ -26,7 +26,10 @@ public:
 	double Damper;
 	
 	UPROPERTY(EditDefaultsOnly, Category = FollowForce)
-	double MaxDistance;
+	double BreakDistance;
+
+	UPROPERTY(EditDefaultsOnly, Category = FollowForce)
+	double MaxForceDistance;
 	
 	AAORShadowController();
 
@@ -36,16 +39,16 @@ public:
 	void SetNewMemory(AORCharacterMemory& memory);
 
 private:
-	void DoMovements(FTimespan ts, float deltaTime);
+	void DoMovements(float ts, float deltaTime);
 	void ApplyCorrectionForce(FVector targetPos, FVector targetVel, float deltaTime);
-	void DoActions(FTimespan ts);
+	void DoActions(float ts);
 
 private:
-	AAORBaseCharacter* character;
+	TWeakObjectPtr<AAORBaseCharacter> character;
 	AORCharacterMemory memory;
 	int mInd;
 	int aInd;
-	FDateTime beginMemTime;
+	float timespan;
 	
 	bool isCorrectionForce;
 	FVector lastTargetPos;

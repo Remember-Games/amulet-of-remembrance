@@ -15,18 +15,18 @@ struct AORMovementRecord
 	float sideways;
 	FVector position;
 	FRotator rotation;
-	FTimespan timespan;
+	float timespan;
 	AORMovementRecord() {}
-	AORMovementRecord(float forward, float sideways, FVector position, FRotator rotation, FTimespan timespan)
+	AORMovementRecord(float forward, float sideways, FVector position, FRotator rotation, float timespan)
 		: forward(forward), sideways(sideways), position(position), rotation(rotation), timespan(timespan){}
 };
 
 struct AORActionEvent
 {
 	AORCharacterAction action;
-	FTimespan timespan;
+	float timespan;
 	AORActionEvent() {}
-	AORActionEvent(AORCharacterAction action, FTimespan timespan)
+	AORActionEvent(AORCharacterAction action, float timespan)
 		: action(action), timespan(timespan) {}
 };
 
@@ -34,20 +34,20 @@ struct AORCharacterMemory
 {
 	TArray<AORMovementRecord> movements;
 	TArray<AORActionEvent> actions;
-	FTimespan timespan;
+	float timespan;
 
 	void Clear() {
 		movements.Empty();
 		actions.Empty();
-		timespan = FTimespan(0);
+		timespan = 0;
 	}
 
 	FString ToString() {
 		//transforms
 		FString oStr = FString(TEXT("\n***MEMORY***\n\n::MOVEMENTS::\n"));
 		for (auto& t : movements) {
-			oStr += FString::Printf(TEXT(" -- TIME: %u ==> AXIS: [ %d, %d ] , POS: { %s } , ROT: { %s }\n"),
-				t.timespan.GetTicks(), t.forward, t.sideways, *t.position.ToString(), *t.rotation.ToString());
+			oStr += FString::Printf(TEXT(" -- TIME: %f ==> AXIS: [ %d, %d ] , POS: { %s } , ROT: { %s }\n"),
+				t.timespan, t.forward, t.sideways, *t.position.ToString(), *t.rotation.ToString());
 		}
 		oStr.Append(TEXT("\n"));
 		return oStr;

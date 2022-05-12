@@ -38,7 +38,7 @@ void AAORPlayerController::OnPossess(APawn* inPawn)
 {
 	Super::OnPossess(inPawn);
 	character = Cast<AAORBaseCharacter>(inPawn);
-	checkf(character, TEXT("Player pawn needs to be a subclass of AORBaseCharacter!"));
+	checkf(character != nullptr, TEXT("Player pawn needs to be a subclass of AORBaseCharacter!"));
 }
 
 void AAORPlayerController::Tick(float deltaTime)
@@ -48,9 +48,8 @@ void AAORPlayerController::Tick(float deltaTime)
 	//UE_LOG(LogTemp, Warning, TEXT("Player Controller TICK: %u"), now.GetTicks());
 	//DebugPrintCorrection(character->GetActorLocation(), character->GetActorRotation(), now);
 	if (isRecording) {
-		FDateTime now = FDateTime::UtcNow();
-		FTimespan timespan = now - beginRecTime;
-		if (timespan.GetTotalSeconds() > MaxRecordingDuration) {
+		timespan += deltaTime;
+		if (timespan > MaxRecordingDuration) {
 			StopShadowRecord();
 			return;
 		}
@@ -65,18 +64,17 @@ void AAORPlayerController::BeginShadowRecord()
 {
 	character->BeginShadowRecord();
 	isRecording = true;
-	beginRecTime = FDateTime::UtcNow();
+	timespan = 0;
 	beginRecPos = character->GetActorLocation();
 	beginRecRot = character->GetActorRotation();
-	memory.movements.Add(AORMovementRecord(0, 0, beginRecPos, beginRecRot, FTimespan(0)));
+	memory.movements.Add(AORMovementRecord(0, 0, beginRecPos, beginRecRot, 0));
 }
 
 void AAORPlayerController::StopShadowRecord()
 {
 	character->StopShadowRecord();
 	isRecording = false;
-	FDateTime endRecTime = FDateTime::UtcNow();
-	memory.timespan = endRecTime - beginRecTime;
+	memory.timespan = timespan;
 	//UE_LOG(LogTemp, Warning, TEXT("%s"), *memory.ToString());
 	checkf(ShadowCharacter, TEXT("Shadow Character type class is not set properly!"));
 	APawn* shadow_pawn = GetWorld()->SpawnActor<APawn>(ShadowCharacter, beginRecPos, beginRecRot);
@@ -144,7 +142,6 @@ void AAORPlayerController::JumpActionOn()
 	//UE_LOG(LogTemp, Warning, TEXT("***Jump On\n"));
 	character->Jump();
 	if (isRecording) {
-		FTimespan timespan = FDateTime::UtcNow() - beginRecTime;
 		memory.actions.Add(AORActionEvent(AORCharacterAction::JUMP_ON, timespan));
 	}
 }
@@ -155,7 +152,6 @@ void AAORPlayerController::JumpActionOff()
 	//UE_LOG(LogTemp, Warning, TEXT("***Jump Off\n"));
 	character->StopJumping();
 	if (isRecording) {
-		FTimespan timespan = FDateTime::UtcNow() - beginRecTime;
 		memory.actions.Add(AORActionEvent(AORCharacterAction::JUMP_OFF, timespan));
 	}
 }
@@ -164,7 +160,6 @@ void AAORPlayerController::InteractAction()
 {
 	character->Interact();
 	if (isRecording) {
-		FTimespan timespan = FDateTime::UtcNow() - beginRecTime;
 		memory.actions.Add(AORActionEvent(AORCharacterAction::INTERACT, timespan));
 	}
 }

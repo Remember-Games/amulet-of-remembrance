@@ -34,7 +34,7 @@ void AAORBaseCharacter::Tick(float DeltaTime)
 
 void AAORBaseCharacter::Interact()
 {
-	if (interactFocus) {
+	if (interactFocus != nullptr) {
 		interactFocus->Interact();
 	}
 }
@@ -57,18 +57,18 @@ void AAORBaseCharacter::UpdateInteractionFocus()
 	if (GetWorld()->LineTraceSingleByChannel(out, interactOrigin, interactEnd, ECollisionChannel::ECC_Visibility)) {
 		auto* interactive = Cast<IAORInteractive>(out.GetActor());
 		if (interactive && interactive->CanInteract()) {
-			if (interactive != interactFocus) {
+			if (interactive != interactFocus.Get()) {
 				interactive->HighlightOn();
-				if (interactFocus)interactFocus->HighlightOff();
+				if (interactFocus != nullptr)interactFocus->HighlightOff();
 			}
 			interactFocus = interactive;
 		}
-		else if(interactFocus){
+		else if(interactFocus != nullptr){
 			interactFocus->HighlightOff();
 			interactFocus = nullptr;
 		}
 	}
-	else if(interactFocus){
+	else if(interactFocus != nullptr){
 		interactFocus->HighlightOff();
 		interactFocus = nullptr;
 	}

@@ -7,22 +7,23 @@
 
 AAORShadowController::AAORShadowController() 
 {
-	beginMemTime = FDateTime::UtcNow();
+	timespan = 0;
 	mInd = 0;
 	aInd = 0;
 	isCorrectionForce = true;
 	lastTargetPos = FVector(0, 0, 0);
 
-	Spring = 10;
+	Spring = 150;
 	Damper = 0.2;
-	MaxDistance = 100;
+	BreakDistance = 200;
+	MaxForceDistance = 200;
 }
 
 void AAORShadowController::OnPossess(APawn* inPawn)
 {
 	Super::OnPossess(inPawn);
 	character = Cast<AAORBaseCharacter>(inPawn);
-	checkf(character, TEXT("Shadow pawn needs to be a subclass of AORBaseCharacter!"));
+	checkf(character != nullptr, TEXT("Shadow pawn needs to be a subclass of AORBaseCharacter!"));
 	characterMovement = character->GetCharacterMovement();
 	lastTargetPos = character->GetActorLocation();
 }
@@ -30,22 +31,22 @@ void AAORShadowController::OnPossess(APawn* inPawn)
 void AAORShadowController::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
-	FTimespan tspan = FDateTime::UtcNow() - beginMemTime;
-	if (tspan > memory.timespan) {
+	timespan += deltaTime;
+	if (timespan > memory.timespan) {
 		character->Destroy();
 		return; 
 	}
-	DoMovements(tspan, deltaTime);
-	DoActions(tspan);
+	DoMovements(timespan, deltaTime);
+	DoActions(timespan);
 }
 
 void AAORShadowController::SetNewMemory(AORCharacterMemory& _memory)
 {
 	memory = std::move(_memory);
-	beginMemTime = FDateTime::UtcNow();
+	timespan = 0;
 }
 
-void AAORShadowController::DoMovements(FTimespan ts, float deltaTime)
+void AAORShadowController::DoMovements(float ts, float deltaTime)
 {
 	if (mInd >= memory.movements.Num() || ts < memory.movements[mInd].timespan)return;
 	while (mInd + 1 < memory.movements.Num() &&
@@ -57,8 +58,8 @@ void AAORShadowController::DoMovements(FTimespan ts, float deltaTime)
 	float sideways;
 	if (mInd + 1 < memory.movements.Num()) {
 		AORMovementRecord tr_to = memory.movements[mInd + 1];
-		double l = (tr_to.timespan - tr_from.timespan).GetTotalSeconds();
-		double delta = (ts - tr_from.timespan).GetTotalSeconds();
+		float l = tr_to.timespan - tr_from.timespan;
+		float delta = ts - tr_from.timespan;
 		double k = l != 0 ? delta / l : delta;
 		targetPos = FMath::Lerp(tr_from.position, tr_to.position, k);
 		targetRot = FMath::Lerp(tr_from.rotation, tr_to.rotation, k);
@@ -84,7 +85,7 @@ void AAORShadowController::DoMovements(FTimespan ts, float deltaTime)
 	character->AddMovementInput(sidewaysDirection, sideways);
 }
 
-void AAORShadowController::DoActions(FTimespan ts)
+void AAORShadowController::DoActions(float ts)
 {
 	AORActionEvent e;
 	while (aInd < memory.actions.Num() && (e = memory.actions[aInd]).timespan < ts) {
@@ -113,9 +114,10 @@ void AAORShadowController::ApplyCorrectionForce(FVector targetPos, FVector targe
 		FVector deltaVel = targetVel - characterMovement->Velocity;
 		UE_LOG(LogTemp, Warning, TEXT("DeltaPos: %s"), *deltaPos.ToString());
 		UE_LOG(LogTemp, Warning, TEXT("DeltaVel: %s | TargetVel: %s | ChVel: %s"), *deltaVel.ToString(), *targetVel.ToString(), *characterMovement->Velocity.ToString());
-		if (deltaPos.Length() < MaxDistance) {
-			FVector springForce = Spring * deltaPos; 
-			FVector damperForce = Damper * Spring * deltaVel;
+		if (deltaPos.Length() < BreakDistance) {
+			FVector springForce = (Spring * deltaPos).GetClampedToMaxSize(Spring * MaxForceDistance); 
+			FVector damperForce = (Damper * Spring * deltaVel).GetClampedToMaxSize(Damper * Spring * MaxForceDistance);
+			//FMath::Clamp(springForce, )
 			FVector correctionForce = (springForce + damperForce)*characterMovement->Mass;
 			characterMovement->AddForce(correctionForce);
 			UE_LOG(LogTemp, Warning, TEXT("Spring Force: %s | Damping Force: %s"), *springForce.ToString(), *damperForce.ToString());

@@ -55,9 +55,9 @@ private:
 
 	/*MEMBERS*/
 private:
-	AAORBaseCharacter* character;
+	TWeakObjectPtr<AAORBaseCharacter> character;
 	AORCharacterMemory memory;
-	FDateTime beginRecTime;
+	float timespan;
 	bool isRecording;
 
 	FVector beginRecPos;

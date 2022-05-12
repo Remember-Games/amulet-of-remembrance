@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/Actor.h"
 #include "AORInteractive.h"
+#include "UObject/WeakInterfacePtr.h"
 #include "AORBaseCharacter.generated.h"
 
 UCLASS()
@@ -43,5 +44,5 @@ private:
 	void UpdateInteractionFocus();
 
 private:
-	IAORInteractive* interactFocus;
+	TWeakInterfacePtr<IAORInteractive> interactFocus;
 };
